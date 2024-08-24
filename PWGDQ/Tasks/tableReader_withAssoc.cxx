@@ -1721,16 +1721,16 @@ struct AnalysisAsymmetricPairing {
       }
     }
     // Check that the leg cut masks make sense
-    if (int(TMath::Log2(fLegAFilterMask))+1 > objArray->GetEntries()) {
-      LOGF(fatal, "fConfigLegAFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegAFilterMask))+1, objArray->GetEntries());
+    if (int(TMath::Log2(fLegAFilterMask)) + 1 > objArray->GetEntries()) {
+      LOGF(fatal, "fConfigLegAFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegAFilterMask)) + 1, objArray->GetEntries());
     }
-    if (int(TMath::Log2(fLegBFilterMask))+1 > objArray->GetEntries()) {
-      LOGF(fatal, "fConfigLegBFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegBFilterMask))+1, objArray->GetEntries());
+    if (int(TMath::Log2(fLegBFilterMask)) + 1 > objArray->GetEntries()) {
+      LOGF(fatal, "fConfigLegBFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegBFilterMask)) + 1, objArray->GetEntries());
     }
-    if (int(TMath::Log2(fLegCFilterMask))+1 > objArray->GetEntries()) {
-      LOGF(fatal, "fConfigLegCFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegCFilterMask))+1, objArray->GetEntries());
+    if (int(TMath::Log2(fLegCFilterMask)) + 1 > objArray->GetEntries()) {
+      LOGF(fatal, "fConfigLegCFilterMask has highest bit at position %d, but track-selection only has %d cuts!", int(TMath::Log2(fLegCFilterMask)) + 1, objArray->GetEntries());
     }
-    
+
     // Get the cuts defining the legs
     uint32_t fConstructedLegAFilterMask = 0;
     uint32_t fConstructedLegBFilterMask = 0;
@@ -2104,12 +2104,12 @@ struct AnalysisAsymmetricPairing {
           }
         } // end loop (cuts)
         ditrackList(event.globalIndex(), VarManager::fgValues[VarManager::kMass],
-            VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi],
-            t1.sign() + t2.sign(), twoTrackFilter, pairFilter, twoTrackCommonFilter);
+                    VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi],
+                    t1.sign() + t2.sign(), twoTrackFilter, pairFilter, twoTrackCommonFilter);
         if constexpr (trackHasCov && TTwoProngFitter) {
           ditrackExtraList(t1.globalIndex(), t2.globalIndex(), VarManager::fgValues[VarManager::kVertexingTauzProjected], VarManager::fgValues[VarManager::kVertexingLzProjected], VarManager::fgValues[VarManager::kVertexingLxyProjected]);
         }
-      } // end inner assoc loop (leg A)
+      }   // end inner assoc loop (leg A)
     }     // end event loop
   }
 
@@ -2451,7 +2451,7 @@ struct AnalysisDileptonTrack {
                 DefineHistograms(fHistMan, fHistNamesDileptonTrack[fNCuts + icut * fNCommonTrackCuts + iCommonCut], fConfigHistogramSubgroups.value.data()); // define dilepton-track histograms
                 DefineHistograms(fHistMan, fHistNamesDileptons[fNCuts + icut * fNCommonTrackCuts + iCommonCut], "barrel,vertexing");                         // define dilepton histograms
               }
-            } 
+            }
             if (!pairCutsStr.IsNull()) {
               std::unique_ptr<TObjArray> objArrayPairCuts(pairCutsStr.Tokenize(","));
               fNPairCuts = objArrayPairCuts->GetEntries();
@@ -2463,14 +2463,12 @@ struct AnalysisDileptonTrack {
                 if (!pairCommonCutsStr.IsNull()) {
                   std::unique_ptr<TObjArray> objArrayCommon(pairCommonCutsStr.Tokenize(","));
                   for (int iCommonCut = 0; iCommonCut < fNCommonTrackCuts; ++iCommonCut) {
-                    fHistNamesDileptonTrack[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut]
-                      = Form("DileptonTrack_%s_%s_%s_%s", tempStr.Data(), objArrayCommon->At(iCommonCut)->GetName(), objArrayPairCuts->At(iPairCut)->GetName(), fConfigTrackCut.value.data());
-                    fHistNamesDileptons[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut]
-                      = Form("DileptonsSelected_%s_%s_%s", tempStr.Data(), objArrayCommon->At(iCommonCut)->GetName(), objArrayPairCuts->At(iPairCut)->GetName());
+                    fHistNamesDileptonTrack[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut] = Form("DileptonTrack_%s_%s_%s_%s", tempStr.Data(), objArrayCommon->At(iCommonCut)->GetName(), objArrayPairCuts->At(iPairCut)->GetName(), fConfigTrackCut.value.data());
+                    fHistNamesDileptons[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut] = Form("DileptonsSelected_%s_%s_%s", tempStr.Data(), objArrayCommon->At(iCommonCut)->GetName(), objArrayPairCuts->At(iPairCut)->GetName());
                     DefineHistograms(fHistMan, fHistNamesDileptonTrack[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut], fConfigHistogramSubgroups.value.data()); // define dilepton-track histograms
                     DefineHistograms(fHistMan, fHistNamesDileptons[(fNCuts * (fNCommonTrackCuts + 1) + fNCuts * fNPairCuts) + icut * (fNPairCuts * fNCommonTrackCuts + 1) + iCommonCut * (1 + fNPairCuts) + iPairCut], "barrel,vertexing");                         // define dilepton histograms
                   }
-                } 
+                }
               }
             }
             if (isBarrelME || isMuonME) {
