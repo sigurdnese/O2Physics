@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2physics_add_dpl_workflow(table-reader
+o2physics_add_dpl_workflow(my-ditracks-analyzer
                     SOURCES myDitracksAnalyzer.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGDQCore
                     COMPONENT_NAME Analysis)
