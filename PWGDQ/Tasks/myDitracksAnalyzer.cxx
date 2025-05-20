@@ -22,6 +22,8 @@ using namespace o2;
 using namespace o2::framework;
 
 struct myDitracksAnalyzer {
+  Configurable<float> fConfigLowMass{"cfgLowMass", 1.80, "Ditrack lower mass cut"};
+  Configurable<float> fConfigHighMass{"cfgHighMass", 1.90, "Ditrack upper mass cut"};
   // Histogram registry: an object to hold your histograms
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   // Map to track how many times an event has been encountered
@@ -38,10 +40,15 @@ struct myDitracksAnalyzer {
 
   void process(aod::Ditracks::iterator const& ditrack)
   {
+    if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() > fConfigHighMass.value) {
+      return;
+    }
     if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
       LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
+      fEventCount.insert({ditrack.reducedeventId(), 1});
+    } else {
+      fEventCount[ditrack.reducedeventId()] += 1;
     }
-    fEventCount[ditrack.reducedeventId()] += 1;
   }
 };
 
