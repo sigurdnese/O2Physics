@@ -2565,7 +2565,7 @@ struct AnalysisAsymmetricPairing {
                     VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi],
                     t1.sign() + t2.sign(), twoTrackFilter, pairFilter, twoTrackCommonFilter);
         if constexpr (trackHasCov && TTwoProngFitter) {
-          ditrackExtraList(t1.globalIndex(), t2.globalIndex(), VarManager::fgValues[VarManager::kVertexingTauzProjected], VarManager::fgValues[VarManager::kVertexingLzProjected], VarManager::fgValues[VarManager::kVertexingLxyProjected]);
+          ditrackExtraList(t1.globalIndex(), t2.globalIndex(), VarManager::fgValues[VarManager::kVertexingTauzProjected], VarManager::fgValues[VarManager::kVertexingLzProjected], VarManager::fgValues[VarManager::kVertexingLxyProjected], event.multNTracksPV(), event.multFT0A(), event.multFT0C(), event.multFV0A());
         }
       } // end inner assoc loop (leg A)
     } // end event loop

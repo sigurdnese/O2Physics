@@ -896,6 +896,7 @@ DECLARE_SOA_TABLE(DitracksExtra, "AOD", "RTDITRKEXTRA", //!
                   reducedpair::Tauz,
                   reducedpair::Lz,
                   reducedpair::Lxy,
+                  mult::MultNTracksPV, mult::MultFT0A, mult::MultFT0C, mult::MultFV0A,
                   o2::soa::Marker<1>);
 
 // mft PID reduced data model
