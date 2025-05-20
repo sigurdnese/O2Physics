@@ -45,9 +45,9 @@ struct myDitracksAnalyzer {
     }
     if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
       LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
-      fEventCount.insert({ditrack.reducedeventId(), 1});
-    } else {
       fEventCount[ditrack.reducedeventId()] += 1;
+    } else {
+      fEventCount.insert({ditrack.reducedeventId(), 1});
     }
   }
 };
