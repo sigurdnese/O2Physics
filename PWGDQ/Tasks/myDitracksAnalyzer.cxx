@@ -15,6 +15,7 @@
 
 #include <Framework/ASoA.h>
 #include <fairlogger/Logger.h>
+#include <utility>
 #include "Framework/runDataProcessing.h"
 #include "PWGDQ/DataModel/ReducedInfoTables.h"
 #include "Framework/AnalysisTask.h"
@@ -25,8 +26,9 @@ using namespace o2::framework;
 using myDitracks = soa::Join<aod::Ditracks, aod::DitracksExtra>;
 
 struct myDitracksAnalyzer {
-  Configurable<float> fConfigLowMass{"cfgLowMass", 1.80, "Ditrack lower mass cut"};
-  Configurable<float> fConfigHighMass{"cfgHighMass", 1.90, "Ditrack upper mass cut"};
+  Configurable<float> fConfigLowMass{"cfgLowMass", 0., "Ditrack lower mass cut"};
+  Configurable<float> fConfigHighMass{"cfgHighMass", 9999., "Ditrack upper mass cut"};
+  Configurable<int> fConfigPairFilterBit{"cfgPairFilterBit", 0, "Which bit from the PairFilterMap to use for selection"};
   // Histogram registry: an object to hold your histograms
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   // Map to track how many times an event has been encountered
@@ -36,8 +38,18 @@ struct myDitracksAnalyzer {
   {
     // define axes you want to use
     const AxisSpec axisMult{300, 0., 300., "Multiplicity"};
+    const AxisSpec axisMass{500, 0., 5., "Mass"};
+    const AxisSpec axisMassD0region{140, 1.5, 2.2, "MassD0region"};
+    const AxisSpec axisPt{2000, 0.0, 20., "Pt"};
 
     // create histograms
+    histos.add("Mass_BeforeCuts", "Mass_BeforeCuts", kTH1F, {axisMass});
+    histos.add("MassD0region_BeforeCuts", "MassD0region_BeforeCuts", kTH1F, {axisMassD0region});
+    histos.add("Pt_BeforeCuts", "Pt_BeforeCuts", kTH1F, {axisPt});
+
+    histos.add("Mass", "Mass", kTH1F, {axisMass});
+    histos.add("MassD0region", "MassD0region", kTH1F, {axisMassD0region});
+    histos.add("Pt", "Pt", kTH1F, {axisPt});
     histos.add("VtxNContribReal", "VtxNContribReal", kTH1F, {axisMult});
     histos.add("MultFT0A", "MultFT0A", kTH1F, {axisMult});
     histos.add("MultFT0C", "MultFT0C", kTH1F, {axisMult});
@@ -46,10 +58,23 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks::iterator const& ditrack)
   {
+    // Fill histograms before cuts
+    histos.get<TH1>(HIST("Mass_BeforeCuts"))->Fill(ditrack.mass());
+    histos.get<TH1>(HIST("MassD0region_BeforeCuts"))->Fill(ditrack.mass());
+    histos.get<TH1>(HIST("Pt_BeforeCuts"))->Fill(ditrack.pt());
+
     // Apply cuts
-    if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() > fConfigHighMass.value) {
+    if (!ditrack.pairFilterMap_bit(fConfigPairFilterBit)) {
       return;
     }
+    if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() >= fConfigHighMass.value) {
+      return;
+    }
+
+    // Fill pair-level histograms after cuts
+    histos.get<TH1>(HIST("Mass"))->Fill(ditrack.mass());
+    histos.get<TH1>(HIST("MassD0region"))->Fill(ditrack.mass());
+    histos.get<TH1>(HIST("Pt"))->Fill(ditrack.pt());
 
     if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
       LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
