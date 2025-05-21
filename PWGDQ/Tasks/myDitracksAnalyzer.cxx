@@ -29,6 +29,7 @@ struct myDitracksAnalyzer {
   Configurable<float> fConfigLowMass{"cfgLowMass", 0., "Ditrack lower mass cut"};
   Configurable<float> fConfigHighMass{"cfgHighMass", 9999., "Ditrack upper mass cut"};
   Configurable<int> fConfigPairFilterBit{"cfgPairFilterBit", 0, "Which bit from the PairFilterMap to use for selection"};
+  Configurable<int> fConfigPairSign{"cfgPairSign", 0, "Ditrack sum of signs"};
   // Histogram registry: an object to hold your histograms
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   // Map to track how many times an event has been encountered
@@ -58,6 +59,11 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks::iterator const& ditrack)
   {
+    // Only process pairs with correct charge
+    if (ditrack.sign() != fConfigPairSign.value) {
+      return;
+    }
+
     // Fill histograms before cuts
     histos.get<TH1>(HIST("Mass_BeforeCuts"))->Fill(ditrack.mass());
     histos.get<TH1>(HIST("MassD0region_BeforeCuts"))->Fill(ditrack.mass());
