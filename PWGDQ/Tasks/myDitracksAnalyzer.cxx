@@ -97,6 +97,7 @@ struct myDitracksAnalyzer {
     } else {
       // First time this event is encountered, fill event-level histograms
       fEventCount.insert({ditrack.reducedeventId(), 1});
+      histos.get<TH1>(HIST("ND0Cand"))->Fill(1);
 
       histos.get<TH1>(HIST("VtxNContribReal"))->Fill(ditrack.multNTracksPV());
       histos.get<TH1>(HIST("MultFT0A"))->Fill(ditrack.multFT0A());
