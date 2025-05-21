@@ -14,6 +14,7 @@
 /// \author everyone
 
 #include <Framework/ASoA.h>
+#include <Framework/HistogramSpec.h>
 #include <fairlogger/Logger.h>
 #include <utility>
 #include "Framework/runDataProcessing.h"
@@ -38,7 +39,8 @@ struct myDitracksAnalyzer {
   void init(InitContext const&)
   {
     // define axes you want to use
-    const AxisSpec axisMult{300, 0., 300., "Multiplicity"};
+    const AxisSpec axisMult{700, 0., 700., "Multiplicity"};
+    const AxisSpec axisMultLow{100, 0., 100., "Multiplicity"};
     const AxisSpec axisMass{500, 0., 5., "Mass"};
     const AxisSpec axisMassD0region{140, 1.5, 2.2, "MassD0region"};
     const AxisSpec axisPt{2000, 0.0, 20., "Pt"};
@@ -55,44 +57,53 @@ struct myDitracksAnalyzer {
     histos.add("MultFT0A", "MultFT0A", kTH1F, {axisMult});
     histos.add("MultFT0C", "MultFT0C", kTH1F, {axisMult});
     histos.add("MultFV0A", "MultFV0A", kTH1F, {axisMult});
+    histos.add("ND0Cand", "ND0Cand", kTH1F, {axisMultLow});
   }
 
-  void process(myDitracks::iterator const& ditrack)
+  void process(myDitracks const& ditracks)
   {
-    // Only process pairs with correct charge
-    if (ditrack.sign() != fConfigPairSign.value) {
-      return;
+    fEventCount.clear();
+
+    for (auto& ditrack : ditracks) {
+      // Only process pairs with correct charge
+      if (ditrack.sign() != fConfigPairSign.value) {
+        return;
+      }
+
+      // Fill histograms before cuts
+      histos.get<TH1>(HIST("Mass_BeforeCuts"))->Fill(ditrack.mass());
+      histos.get<TH1>(HIST("MassD0region_BeforeCuts"))->Fill(ditrack.mass());
+      histos.get<TH1>(HIST("Pt_BeforeCuts"))->Fill(ditrack.pt());
+
+      // Apply cuts
+      if (!ditrack.pairFilterMap_bit(fConfigPairFilterBit)) {
+        return;
+      }
+      if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() >= fConfigHighMass.value) {
+        return;
+      }
+
+      // Fill pair-level histograms after cuts
+      histos.get<TH1>(HIST("Mass"))->Fill(ditrack.mass());
+      histos.get<TH1>(HIST("MassD0region"))->Fill(ditrack.mass());
+      histos.get<TH1>(HIST("Pt"))->Fill(ditrack.pt());
+
+      if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
+        LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
+        fEventCount[ditrack.reducedeventId()] += 1;
+      } else {
+        // First time this event is encountered, fill event-level histograms
+        fEventCount.insert({ditrack.reducedeventId(), 1});
+
+        histos.get<TH1>(HIST("VtxNContribReal"))->Fill(ditrack.multNTracksPV());
+        histos.get<TH1>(HIST("MultFT0A"))->Fill(ditrack.multFT0A());
+        histos.get<TH1>(HIST("MultFT0C"))->Fill(ditrack.multFT0C());
+        histos.get<TH1>(HIST("MultFV0A"))->Fill(ditrack.multFV0A());
+      }
     }
-
-    // Fill histograms before cuts
-    histos.get<TH1>(HIST("Mass_BeforeCuts"))->Fill(ditrack.mass());
-    histos.get<TH1>(HIST("MassD0region_BeforeCuts"))->Fill(ditrack.mass());
-    histos.get<TH1>(HIST("Pt_BeforeCuts"))->Fill(ditrack.pt());
-
-    // Apply cuts
-    if (!ditrack.pairFilterMap_bit(fConfigPairFilterBit)) {
-      return;
-    }
-    if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() >= fConfigHighMass.value) {
-      return;
-    }
-
-    // Fill pair-level histograms after cuts
-    histos.get<TH1>(HIST("Mass"))->Fill(ditrack.mass());
-    histos.get<TH1>(HIST("MassD0region"))->Fill(ditrack.mass());
-    histos.get<TH1>(HIST("Pt"))->Fill(ditrack.pt());
-
-    if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
-      LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
-      fEventCount[ditrack.reducedeventId()] += 1;
-    } else {
-      // First time this event is encountered, fill event-level histograms
-      fEventCount.insert({ditrack.reducedeventId(), 1});
-
-      histos.get<TH1>(HIST("VtxNContribReal"))->Fill(ditrack.multNTracksPV());
-      histos.get<TH1>(HIST("MultFT0A"))->Fill(ditrack.multFT0A());
-      histos.get<TH1>(HIST("MultFT0C"))->Fill(ditrack.multFT0C());
-      histos.get<TH1>(HIST("MultFV0A"))->Fill(ditrack.multFV0A());
+    // Loop over eventCount map and fill histogram
+    for (const auto& entry : fEventCount) {
+      histos.get<TH1>(HIST("ND0Cand"))->Fill(entry.second);
     }
   }
 };
