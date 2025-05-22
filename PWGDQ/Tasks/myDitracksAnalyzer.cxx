@@ -16,6 +16,7 @@
 #include <Framework/ASoA.h>
 #include <Framework/HistogramSpec.h>
 #include <fairlogger/Logger.h>
+#include <cstdint>
 #include "Framework/runDataProcessing.h"
 #include "PWGDQ/DataModel/ReducedInfoTables.h"
 #include "Framework/AnalysisTask.h"
@@ -24,9 +25,6 @@ using namespace o2;
 using namespace o2::framework;
 
 using myDitracks = soa::Join<aod::Ditracks, aod::DitracksExtra>;
-
- OutputObj<TH1F> massHisto{TH1F("MassOutputObj", "MassOutputObj", 500, 0., 5.),
-                       OutputObjHandlingPolicy::AnalysisObject};
 
 struct myDitracksAnalyzer {
   OutputObj<TH1F> massHisto{TH1F("MassOutputObj", "MassOutputObj", 500, 0., 5.),
@@ -40,6 +38,7 @@ struct myDitracksAnalyzer {
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   // Map to track how many times an event has been encountered
   std::map<int32_t, int8_t> fEventCount;
+  int64_t ditracksCounter;
 
   void init(InitContext const&)
   {
@@ -67,14 +66,18 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks const& ditracks)
   {
+    LOGF(info, "last loop we accessed %d ditracks", ditracksCounter);
+    ditracksCounter = 0;
     LOGF(info, "ditracks has %d entries", ditracks.size());
     fEventCount.clear();
     for (auto& ditrack : ditracks) {
+      ditracksCounter++;
       // Only process pairs with correct charge
       if (ditrack.sign() != fConfigPairSign.value) {
         return;
       }
 
+      massHisto->Fill(ditrack.mass());
       // Fill histograms before cuts
       histos.get<TH1>(HIST("Mass_BeforeCuts"))->Fill(ditrack.mass());
       histos.get<TH1>(HIST("MassD0region_BeforeCuts"))->Fill(ditrack.mass());
@@ -90,7 +93,6 @@ struct myDitracksAnalyzer {
 
       // Fill pair-level histograms after cuts
       histos.get<TH1>(HIST("Mass"))->Fill(ditrack.mass());
-      massHisto->Fill(ditrack.mass());
       histos.get<TH1>(HIST("MassD0region"))->Fill(ditrack.mass());
       histos.get<TH1>(HIST("Pt"))->Fill(ditrack.pt());
 
