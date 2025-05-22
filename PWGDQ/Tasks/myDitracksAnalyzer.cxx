@@ -88,7 +88,7 @@ struct myDitracksAnalyzer {
     if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
       LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
       // Remove one count from the old number
-      histos.get<TH1>(HIST("ND0Cand"))->SetBinContent(fEventCount[ditrack.reducedeventId()], histos.get<TH1>(HIST("ND0Cand"))->GetBinContent(fEventCount[ditrack.reducedeventId()] - 1));
+      histos.get<TH1>(HIST("ND0Cand"))->SetBinContent(fEventCount[ditrack.reducedeventId()], histos.get<TH1>(HIST("ND0Cand"))->GetBinContent(fEventCount[ditrack.reducedeventId()]) - 1);
       // Update counter and histogram
       fEventCount[ditrack.reducedeventId()] += 1;
       histos.get<TH1>(HIST("ND0Cand"))->Fill(fEventCount[ditrack.reducedeventId()]);
