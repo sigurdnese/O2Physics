@@ -38,7 +38,6 @@ struct myDitracksAnalyzer {
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   // Map to track how many times an event has been encountered
   std::map<int32_t, int8_t> fEventCount;
-  int64_t ditracksCounter;
 
   void init(InitContext const&)
   {
@@ -66,12 +65,8 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks const& ditracks)
   {
-    LOGF(info, "last loop we accessed %d ditracks", ditracksCounter);
-    ditracksCounter = 0;
-    LOGF(info, "ditracks has %d entries", ditracks.size());
     fEventCount.clear();
     for (auto& ditrack : ditracks) {
-      ditracksCounter++;
       // Only process pairs with correct charge
       if (ditrack.sign() != fConfigPairSign.value) {
         continue;
