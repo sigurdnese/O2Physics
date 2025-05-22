@@ -25,7 +25,7 @@ using namespace o2::framework;
 
 using myDitracks = soa::Join<aod::Ditracks, aod::DitracksExtra>;
 
- OutputObj<TH1F> massHisto{TH1F("Mass", "Mass", 500, 0., 5.),
+ OutputObj<TH1F> massHisto{TH1F("MassOutputObj", "MassOutputObj", 500, 0., 5.),
                        OutputObjHandlingPolicy::AnalysisObject};
 
 struct myDitracksAnalyzer {
