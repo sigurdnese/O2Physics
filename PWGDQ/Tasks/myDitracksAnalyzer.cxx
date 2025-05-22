@@ -16,7 +16,6 @@
 #include <Framework/ASoA.h>
 #include <Framework/HistogramSpec.h>
 #include <fairlogger/Logger.h>
-#include <utility>
 #include "Framework/runDataProcessing.h"
 #include "PWGDQ/DataModel/ReducedInfoTables.h"
 #include "Framework/AnalysisTask.h"
@@ -63,7 +62,7 @@ struct myDitracksAnalyzer {
   void process(myDitracks const& ditracks)
   {
     fEventCount.clear();
-    for (auto &ditrack : ditracks) {
+    for (auto ditrack : ditracks) {
       // Only process pairs with correct charge
       if (ditrack.sign() != fConfigPairSign.value) {
         return;
