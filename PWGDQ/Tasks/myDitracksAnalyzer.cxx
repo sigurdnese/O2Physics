@@ -61,8 +61,9 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks const& ditracks)
   {
+    LOGF(info, "ditracks has %d entries", ditracks.size());
     fEventCount.clear();
-    for (auto ditrack : ditracks) {
+    for (auto& ditrack : ditracks) {
       // Only process pairs with correct charge
       if (ditrack.sign() != fConfigPairSign.value) {
         return;
