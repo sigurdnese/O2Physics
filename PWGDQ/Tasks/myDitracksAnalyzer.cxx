@@ -25,6 +25,9 @@ using namespace o2::framework;
 
 using myDitracks = soa::Join<aod::Ditracks, aod::DitracksExtra>;
 
+ OutputObj<TH1F> massHisto{TH1F("Mass", "Mass", 500, 0., 5.),
+                       OutputObjHandlingPolicy::AnalysisObject};
+
 struct myDitracksAnalyzer {
   Configurable<float> fConfigLowMass{"cfgLowMass", 0., "Ditrack lower mass cut"};
   Configurable<float> fConfigHighMass{"cfgHighMass", 9999., "Ditrack upper mass cut"};
@@ -84,6 +87,7 @@ struct myDitracksAnalyzer {
 
       // Fill pair-level histograms after cuts
       histos.get<TH1>(HIST("Mass"))->Fill(ditrack.mass());
+      massHisto->Fill(ditrack.mass());
       histos.get<TH1>(HIST("MassD0region"))->Fill(ditrack.mass());
       histos.get<TH1>(HIST("Pt"))->Fill(ditrack.pt());
 
