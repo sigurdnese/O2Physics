@@ -74,7 +74,7 @@ struct myDitracksAnalyzer {
       ditracksCounter++;
       // Only process pairs with correct charge
       if (ditrack.sign() != fConfigPairSign.value) {
-        return;
+        continue;
       }
 
       massHisto->Fill(ditrack.mass());
@@ -85,10 +85,10 @@ struct myDitracksAnalyzer {
 
       // Apply cuts
       if (!ditrack.pairFilterMap_bit(fConfigPairFilterBit)) {
-        return;
+        continue;
       }
       if (ditrack.mass() < fConfigLowMass.value || ditrack.mass() >= fConfigHighMass.value) {
-        return;
+        continue;
       }
 
       // Fill pair-level histograms after cuts
