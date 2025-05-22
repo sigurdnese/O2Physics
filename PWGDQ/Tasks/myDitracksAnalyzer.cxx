@@ -29,6 +29,9 @@ using myDitracks = soa::Join<aod::Ditracks, aod::DitracksExtra>;
                        OutputObjHandlingPolicy::AnalysisObject};
 
 struct myDitracksAnalyzer {
+  OutputObj<TH1F> massHisto{TH1F("MassOutputObj", "MassOutputObj", 500, 0., 5.),
+    OutputObjHandlingPolicy::AnalysisObject};
+
   Configurable<float> fConfigLowMass{"cfgLowMass", 0., "Ditrack lower mass cut"};
   Configurable<float> fConfigHighMass{"cfgHighMass", 9999., "Ditrack upper mass cut"};
   Configurable<int> fConfigPairFilterBit{"cfgPairFilterBit", 0, "Which bit from the PairFilterMap to use for selection"};
