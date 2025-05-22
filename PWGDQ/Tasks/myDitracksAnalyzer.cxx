@@ -40,7 +40,7 @@ struct myDitracksAnalyzer {
   {
     // define axes you want to use
     const AxisSpec axisMult{700, 0., 700., "Multiplicity"};
-    const AxisSpec axisMultLow{100, 0., 100., "Multiplicity"};
+    const AxisSpec axisMultLow{100, 0, 100, "Multiplicity"};
     const AxisSpec axisMass{500, 0., 5., "Mass"};
     const AxisSpec axisMassD0region{140, 1.5, 2.2, "MassD0region"};
     const AxisSpec axisPt{2000, 0.0, 20., "Pt"};
@@ -57,7 +57,7 @@ struct myDitracksAnalyzer {
     histos.add("MultFT0A", "MultFT0A", kTH1F, {axisMult});
     histos.add("MultFT0C", "MultFT0C", kTH1F, {axisMult});
     histos.add("MultFV0A", "MultFV0A", kTH1F, {axisMult});
-    histos.add("ND0Cand", "ND0Cand", kTH1F, {axisMultLow});
+    histos.add("ND0Cand", "ND0Cand", kTH1I, {axisMultLow});
   }
 
   void process(myDitracks::iterator const& ditrack)
@@ -88,7 +88,8 @@ struct myDitracksAnalyzer {
     if (fEventCount.find(ditrack.reducedeventId()) != fEventCount.end()) {
       LOGF(info, "!!! This event (%d) has been encountered %d times before", ditrack.reducedeventId(), fEventCount[ditrack.reducedeventId()]);
       // Remove one count from the old number
-      histos.get<TH1>(HIST("ND0Cand"))->SetBinContent(fEventCount[ditrack.reducedeventId()], histos.get<TH1>(HIST("ND0Cand"))->GetBinContent(fEventCount[ditrack.reducedeventId()]) - 1);
+      int oldBin = histos.get<TH1>(HIST("ND0Cand"))->FindBin(fEventCount[ditrack.reducedeventId()]);
+      histos.get<TH1>(HIST("ND0Cand"))->SetBinContent(oldBin, histos.get<TH1>(HIST("ND0Cand"))->GetBinContent(oldBin) - 1);
       // Update counter and histogram
       fEventCount[ditrack.reducedeventId()] += 1;
       histos.get<TH1>(HIST("ND0Cand"))->Fill(fEventCount[ditrack.reducedeventId()]);
