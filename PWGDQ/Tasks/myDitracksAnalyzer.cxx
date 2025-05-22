@@ -62,8 +62,6 @@ struct myDitracksAnalyzer {
 
   void process(myDitracks::iterator const& ditrack)
   {
-    fEventCount.clear();
-
     // Only process pairs with correct charge
     if (ditrack.sign() != fConfigPairSign.value) {
       return;
