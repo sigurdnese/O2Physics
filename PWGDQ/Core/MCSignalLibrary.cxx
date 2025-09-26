@@ -15,10 +15,12 @@
 #include <vector>
 // #include <iostream>
 
-#include <TPDGCode.h>
-#include "CommonConstants/PhysicsConstants.h"
 #include "PWGDQ/Core/MCSignalLibrary.h"
+
+#include "CommonConstants/PhysicsConstants.h"
 #include "Framework/Logger.h"
+
+#include <TPDGCode.h>
 
 using namespace o2::constants::physics;
 // using std::cout;
@@ -85,6 +87,11 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     MCProng prong(1, {321}, {true}, {false}, {0}, {0}, {false}); // define 1-generation prong using the full constructor
     prong.SetSourceBit(0, MCProng::kPhysicalPrimary);            // set source to be ALICE primary particles
     signal = new MCSignal(name, "Primary Kaons", {prong}, {-1}); // define the signal using the full constructor
+    return signal;
+  }
+  if (!nameStr.compare("kaon")) {
+    MCProng prong(1, {321}, {true}, {false}, {0}, {0}, {false});   // define 1-generation prong using the full constructor
+    signal = new MCSignal(name, "Inclusive kaons", {prong}, {-1}); // define the signal using the full constructor
     return signal;
   }
   if (!nameStr.compare("proton")) {

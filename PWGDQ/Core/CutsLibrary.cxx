@@ -765,6 +765,88 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  // Sigurd D0 analysis track cuts
+  if (!nameStr.compare("D0KaonTPC")) {
+    cut->AddCut(GetAnalysisCut("kaonPIDnsigma"));
+    return cut;
+  }
+
+  if (!nameStr.compare("D0KaonTOF")) {
+    cut->AddCut(GetAnalysisCut("kaonPID_TOF"));
+    return cut;
+  }
+
+  if (!nameStr.compare("D0KaonTOFIfHasTOF")) {
+    AnalysisCompositeCut* cut = new AnalysisCompositeCut("kaon_nsigma", "kaon_nsigma", kFALSE);
+    cut->AddCut(GetAnalysisCut("kaonPID_TOF"));
+    cut->AddCut(GetAnalysisCut("noTOF"));
+    return cut;
+  }
+
+  if (!nameStr.compare("D0KaonTPCTOF")) {
+    cut->AddCut(GetAnalysisCut("kaonPID_TPCnTOF"));
+    return cut;
+  }
+
+  if (!nameStr.compare("D0KaonTPCTOFIfHasTOF")) {
+    AnalysisCompositeCut* cut_TOF = new AnalysisCompositeCut("cut_TOF", "cut_TOF", kFALSE);
+    cut_TOF->AddCut(GetAnalysisCut("kaonPID_TOF"));
+    cut_TOF->AddCut(GetAnalysisCut("noTOF"));
+
+    AnalysisCompositeCut* cut_TPC = new AnalysisCompositeCut("cut_noHasTOF", "cut_noHasTOF", kTRUE);
+    cut_TPC->AddCut(GetAnalysisCut("kaonPIDnsigma"));
+
+    AnalysisCompositeCut* cut = new AnalysisCompositeCut("kaon_nsigma", "kaon_nsigma", kTRUE);
+    cut->AddCut(cut_TOF);
+    cut->AddCut(cut_TPC);
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCuts")) {
+    cut->AddCut(GetAnalysisCut("openEtaSel")); // |eta| < 0.9
+    cut->AddCut(GetAnalysisCut("muonLowPt")); // pT > 0.5 GeV
+    cut->AddCut(GetAnalysisCut("ITSibany"));
+    cut->AddCut(GetAnalysisCut("pionQuality")); // TPC nCls > 50
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_DCAz")); // |DCAz| < 0.3 cm
+    cut->AddCut(GetAnalysisCut("TPCchi2_4")); // TPCchi2 < 4
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsEta")) {
+    cut->AddCut(GetAnalysisCut("openEtaSel")); // |eta| < 0.9
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsPt")) {
+    cut->AddCut(GetAnalysisCut("muonLowPt")); // pT > 0.5 GeV
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsITSib")) {
+    cut->AddCut(GetAnalysisCut("ITSibany"));
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsTPCncls")) {
+    cut->AddCut(GetAnalysisCut("pionQuality")); // TPC nCls > 50
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsDCAz")) {
+    cut->AddCut(GetAnalysisCut("PrimaryTrack_DCAz")); // |DCAz| < 3 cm
+    return cut;
+  }
+
+  if (!nameStr.compare("D0CommonTrackCutsTPCchi2")) {
+    cut->AddCut(GetAnalysisCut("TPCchi2_4")); // TPCchi2 < 4
+    return cut;
+  }
+  
+  if (!nameStr.compare("noTrackCut")) {
+    return cut;
+  }
+  // --------------------------------------------------------------
+
   if (!nameStr.compare("PIDCalib")) {
     cut->AddCut(GetAnalysisCut("PIDStandardKine")); // standard kine cuts usually are applied via Filter in the task
     cut->AddCut(GetAnalysisCut("electronStandardQuality"));
@@ -4571,6 +4653,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("TPCchi2_4")) {
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    return cut;
+  }
+
   // List of 30 variations in ITS and TPC parameters
   std::vector<double> cutVar_ITSchi2 = {6., 6., 5., 4., 4., 6., 6., 5., 4., 5., 4., 5., 6., 5., 6., 5., 6., 5., 5., 4., 6., 4., 6., 5., 6., 4., 4., 6., 4., 5.};
   std::vector<double> cutVar_TPCchi2 = {5., 5., 4., 3., 5., 4., 5., 3., 5., 4., 5., 3., 3., 5., 4., 5., 3., 5., 5., 5., 3., 5., 5., 4., 3., 4., 5., 5., 5., 3.};
@@ -5587,6 +5674,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("kaonPID_TPCnTOF")) {
     cut->AddCut(VarManager::kTPCnSigmaKa, -3.0, 3.0);
+    cut->AddCut(VarManager::kTOFnSigmaKa, -3.0, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("kaonPID_TOF")) {
     cut->AddCut(VarManager::kTOFnSigmaKa, -3.0, 3.0);
     return cut;
   }

@@ -32,19 +32,22 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "Field/MagneticField.h"
+#include "Framework/ASoA.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
 
-#include "TGeoGlobalMagField.h"
+#include <TGeoGlobalMagField.h>
 #include <TH1F.h>
 #include <TH3F.h>
 #include <THashList.h>
 #include <TList.h>
 #include <TObjString.h>
 #include <TString.h>
+
+#include <fairlogger/Logger.h>
 
 #include <algorithm>
 #include <iostream>
@@ -2321,6 +2324,20 @@ struct AnalysisSameEventPairing {
 
 // Run pairing for resonance with legs fulfilling separate cuts (asymmetric decay channel)
 struct AnalysisAsymmetricPairing {
+  // temp histograms for checks
+  OutputObj<TH1I> numGenSig_beforeEventCut{TH1I("numGenSig_beforeEventCut", "numGenSig_beforeEventCut", 10, -0.5, 9.5)};
+  OutputObj<TH1I> numGenSig_afterEventCut{TH1I("numGenSig_afterEventCut", "numGenSig_afterEventCut", 10, -0.5, 9.5)};
+  OutputObj<TH1I> numGenSig_inEventLoop{TH1I("numGenSig_inEventLoop", "numGenSig_inEventLoop", 2, -0.5, 1.5)};
+  OutputObj<TH1I> eventSliceSize{TH1I("eventSliceSize", "eventSliceSize", 2, -0.5, 1.5)};
+  OutputObj<TH1D> rejEvtD0Pt{TH1D("rejEvtD0Pt", "rejEvtD0Pt", 80, 0.0, 20.0)};
+  OutputObj<TH2D> rejEvtD0Pt_trackEta{TH2D("rejEvtD0Pt_trackEta", "rejEvtD0Pt_trackEta", 80, 0.0, 20.0, 500, -5.0, 5.0)};
+  OutputObj<TH2D> rejEvtD0Pt_trackDeltaEta{TH2D("rejEvtD0Pt_trackDeltaEta", "rejEvtD0Pt_trackDeltaEta", 80, 0.0, 20.0, 500, -5.0, 5.0)};
+  OutputObj<TH2D> rejEvtD0Pt_trackPt{TH2D("rejEvtD0Pt_trackPt", "rejEvtD0Pt_trackPt", 80, 0.0, 20.0, 80, 0.0, 20.0)};
+  OutputObj<TH2D> rejEvtD0Pt_FT0A{TH2D("rejEvtD0Pt_FT0A", "rejEvtD0Pt_FT0A", 80, 0.0, 20.0, 250, 0.0, 500.0)};
+  OutputObj<TH2D> rejEvtD0Pt_FT0C{TH2D("rejEvtD0Pt_FT0C", "rejEvtD0Pt_FT0C", 80, 0.0, 20.0, 250, 0.0, 500.0)};
+  OutputObj<TH2D> rejEvtFT0A_FT0C{TH2D("rejEvtFT0A_FT0C", "rejEvtFT0A_FT0C", 250, 0.0, 500.0, 250, 0.0, 500.0)};
+  OutputObj<TH2D> rejEvtD0Pt_nMcTracksInFT0AAcceptance{TH2D("rejEvtD0Pt_nMcTracksInFT0AAcceptance", "rejEvtD0Pt_nMcTracksInFT0AAcceptance", 80, 0.0, 20.0, 100, 0.0, 100.0)};
+  OutputObj<TH2D> rejEvtD0Pt_nMcTracksInFT0CAcceptance{TH2D("rejEvtD0Pt_nMcTracksInFT0CAcceptance", "rejEvtD0Pt_nMcTracksInFT0CAcceptance", 80, 0.0, 20.0, 100, 0.0, 100.0)};
 
   Produces<aod::Ditracks> ditrackList;
   Produces<aod::DitracksExtra> ditrackExtraList;
@@ -2395,7 +2412,7 @@ struct AnalysisAsymmetricPairing {
   std::vector<TString> fCommonCutNames;
   std::vector<TString> fRecMCSignalNames;
 
-  Filter eventFilter = aod::dqanalysisflags::isEventSelected > static_cast<uint32_t>(0);
+  // Filter eventFilter = aod::dqanalysisflags::isEventSelected > static_cast<uint32_t>(0);
 
   Preslice<soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts>> trackAssocsPerCollision = aod::reducedtrack_association::reducedeventId;
 
@@ -2409,7 +2426,7 @@ struct AnalysisAsymmetricPairing {
 
   void init(o2::framework::InitContext& context)
   {
-    bool isMCGen = context.mOptions.get<bool>("processMCGen") || context.mOptions.get<bool>("processMCGenWithEventSelection");
+    bool isMCGen = context.mOptions.get<bool>("processMCGen");
     if (context.mOptions.get<bool>("processDummy")) {
       return;
     }
@@ -2707,8 +2724,10 @@ struct AnalysisAsymmetricPairing {
       if (sig) {
         if (sig->GetNProngs() == 1) { // NOTE: 1-prong signals required
           fGenMCSignals.push_back(sig);
-          DefineHistograms(fHistMan, Form("MCTruthGen_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data());    // TODO: Add these names to a std::vector to avoid using Form in the process function
-          DefineHistograms(fHistMan, Form("MCTruthGenSel_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data()); // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGen_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data());            // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenSel_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data());         // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenRec_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data());         // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenAfterBcCuts_%s;", sig->GetName()), fConfigHistogramSubgroups.value.data()); // TODO: Add these names to a std::vector to avoid using Form in the process function
         }
       }
     }
@@ -2720,8 +2739,10 @@ struct AnalysisAsymmetricPairing {
       for (auto& mcIt : addMCSignals) {
         if (mcIt->GetNProngs() == 1) {
           fGenMCSignals.push_back(mcIt);
-          DefineHistograms(fHistMan, Form("MCTruthGen_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data());    // TODO: Add these names to a std::vector to avoid using Form in the process function
-          DefineHistograms(fHistMan, Form("MCTruthGenSel_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data()); // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGen_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data());            // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenSel_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data());         // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenRec_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data());         // TODO: Add these names to a std::vector to avoid using Form in the process function
+          DefineHistograms(fHistMan, Form("MCTruthGenAfterBcCuts_%s;", mcIt->GetName()), fConfigHistogramSubgroups.value.data()); // TODO: Add these names to a std::vector to avoid using Form in the process function
         }
       }
     }
@@ -3263,50 +3284,121 @@ struct AnalysisAsymmetricPairing {
     runThreeProng<true, gkEventFillMapWithCov, gkTrackFillMapWithCov>(events, trackAssocsPerCollision, barrelAssocs, barrelTracks, mcEvents, mcTracks, VarManager::kTripleCandidateToKPiPi);
   }
 
-  void processMCGen(ReducedMCTracks const& mcTracks)
-  {
-    // loop over mc stack and fill histograms for pure MC truth signals
-    // group all the MC tracks which belong to the MC event corresponding to the current reconstructed event
-    // auto groupedMCTracks = tracksMC.sliceBy(aod::reducedtrackMC::reducedMCeventId, event.reducedMCevent().globalIndex());
-    for (auto& mctrack : mcTracks) {
+  PresliceUnsorted<ReducedMCTracks> perReducedMcEvent = aod::reducedtrackMC::reducedMCeventId;
+  PresliceUnsorted<MyEventsVtxCovSelected> perReducedMcTrack = aod::reducedeventlabel::reducedMCeventId;
 
+  void processMCGen(MyEventsVtxCovSelected const& events, ReducedMCEvents const& /*mcEvents*/, ReducedMCTracks const& mcTracks,
+                    soa::Join<aod::ReducedTracksAssoc, aod::BarrelTrackCuts> const& barrelAssocs,
+                    MyBarrelTracksWithCovWithAmbiguities const& /*barrelTracks*/)
+  {
+    // Fill Generated histograms taking into account all generated tracks
+    for (auto& mctrack : mcTracks) {
+      numGenSig_inEventLoop->Fill(0);
       VarManager::FillTrackMC(mcTracks, mctrack);
+      auto mcEvent = mctrack.reducedMCevent_as<ReducedMCEvents>();
+      auto eventSlice = events.sliceBy(perReducedMcTrack, mcEvent.globalIndex());
+      eventSliceSize->Fill(eventSlice.size());
+      // VarManager::FillEvent<gkEventFillMap>(event);
       // NOTE: Signals are checked here mostly based on the skimmed MC stack, so depending on the requested signal, the stack could be incomplete.
       // NOTE: However, the working model is that the decisions on MC signals are precomputed during skimming and are stored in the mcReducedFlags member.
       // TODO:  Use the mcReducedFlags to select signals
       for (auto& sig : fGenMCSignals) {
         if (sig->CheckSignal(true, mctrack)) {
           fHistMan->FillHistClass(Form("MCTruthGen_%s", sig->GetName()), VarManager::fgValues);
+          // Check if this generated signal is in an MC event which passes the BC cuts
+          auto& evSel = mctrack.reducedMCevent_as<ReducedMCEvents>().selection_raw();
+          if (TESTBIT(evSel, evsel::kNoTimeFrameBorder) && TESTBIT(evSel, evsel::kNoITSROFrameBorder)) {
+            fHistMan->FillHistClass(Form("MCTruthGenAfterBcCuts_%s", sig->GetName()), VarManager::fgValues);
+          }
         }
       }
     }
-  }
 
-  PresliceUnsorted<ReducedMCTracks> perReducedMcEvent = aod::reducedtrackMC::reducedMCeventId;
-
-  void processMCGenWithEventSelection(soa::Filtered<MyEventsVtxCovSelected> const& events,
-                                      ReducedMCEvents const& /*mcEvents*/, ReducedMCTracks const& mcTracks)
-  {
+    // Fill Generated histograms taking into account selected collisions
     for (auto& event : events) {
-      if (!event.isEventSelected_bit(0)) {
-        continue;
-      }
       if (!event.has_reducedMCevent()) {
+        LOGF(warning, "!!! event does not have reducedMCevent");
         continue;
       }
+      // if (!event.isEventSelected_bit(0)) {
+      //   continue;
+      // }
 
+      // Fill event quantities belonging to the reconstructed event of the generated signal
+      VarManager::FillEvent<gkEventFillMap>(event);
+
+      auto groupedAssocs = barrelAssocs.sliceBy(trackAssocsPerCollision, event.globalIndex());
       auto groupedMCTracks = mcTracks.sliceBy(perReducedMcEvent, event.reducedMCeventId());
       groupedMCTracks.bindInternalIndicesTo(&mcTracks);
+      int numSig = 0;
       for (auto& track : groupedMCTracks) {
-
+        numGenSig_inEventLoop->Fill(1);
         VarManager::FillTrackMC(mcTracks, track);
-
         auto track_raw = groupedMCTracks.rawIteratorAt(track.globalIndex());
         for (auto& sig : fGenMCSignals) {
           if (sig->CheckSignal(true, track_raw)) {
-            fHistMan->FillHistClass(Form("MCTruthGenSel_%s", sig->GetName()), VarManager::fgValues);
+            numSig++;
+            auto& evSel = track_raw.reducedMCevent_as<ReducedMCEvents>().selection_raw();
+            if (TESTBIT(evSel, evsel::kNoTimeFrameBorder) && TESTBIT(evSel, evsel::kNoITSROFrameBorder)) {
+              // This generated signal is in an event which survived reconstruction (and BC cuts)
+              fHistMan->FillHistClass(Form("MCTruthGenRec_%s", sig->GetName()), VarManager::fgValues);
+            }
+            if (event.isEventSelected_bit(0)) {
+              cout << "!!!------ Event with gen D0 selected ------" << endl;
+              cout << "!!! Event isEventSelected_raw=" << event.isEventSelected_raw() << endl;
+              cout << "!!! Event filter: SGA=" << event.tag_bit(56 + VarManager::kSingleGapA) << ", SGC=" << event.tag_bit(56 + VarManager::kSingleGapC) << ", DG=" << event.tag_bit(56 + VarManager::kDoubleGap) << endl;
+              // This generated signal is in an event which was selected by the analysis cuts in dqEfficiency
+              fHistMan->FillHistClass(Form("MCTruthGenSel_%s", sig->GetName()), VarManager::fgValues);
+            } else {
+              // This event was rejected. Try to find more info here...
+              rejEvtD0Pt_FT0A->Fill(track.pt(), event.multFT0A());
+              rejEvtD0Pt_FT0C->Fill(track.pt(), event.multFT0C());
+              rejEvtFT0A_FT0C->Fill(event.multFT0A(), event.multFT0C());
+              int nMcTracksInFT0AAcceptance = 0;
+              int nMcTracksInFT0CAcceptance = 0;
+              cout << "!!!------ Event with gen D0 rejected ------" << endl;
+              cout << "!!! Event isEventSelected_raw=" << event.isEventSelected_raw() << endl;
+              cout << "!!! Event filter: SGA=" << event.tag_bit(56 + VarManager::kSingleGapA) << ", SGC=" << event.tag_bit(56 + VarManager::kSingleGapC) << ", DG=" << event.tag_bit(56 + VarManager::kDoubleGap) << endl;
+              cout << "!!! Event nContribReal=" << event.multNTracksPV() << endl;
+              cout << "!!! MC tracks in event:" << endl;
+              for (auto& ttrack : groupedMCTracks) {
+                // For the signal rejected on the event level, fill histos with info about the rest of the event
+                cout << "!!! PDG=" << ttrack.pdgCode() << ", (pT, eta, phi)=(" << ttrack.pt() << ", " << ttrack.eta() << ", " << ttrack.phi() << ")" << ", producedByGenerator=" << ttrack.producedByGenerator() << endl;
+                if (ttrack.has_daughters()) {
+                  for (auto& d : ttrack.daughters_as<ReducedMCTracks>()) {
+                    cout << "!!!    PDG=" << d.pdgCode() << ", (pT, eta, phi)=(" << d.pt() << ", " << d.eta() << ", " << d.phi() << ")" << ", producedByGenerator=" << d.producedByGenerator() << endl;
+                  }
+                }
+                rejEvtD0Pt->Fill(track.pt());
+                rejEvtD0Pt_trackPt->Fill(track.pt(), ttrack.pt());
+                rejEvtD0Pt_trackEta->Fill(track.pt(), ttrack.eta());
+                rejEvtD0Pt_trackDeltaEta->Fill(track.pt(), ttrack.eta() - track.eta());
+                if (track.eta() < 4.9 && track.eta() > 3.5) {
+                  nMcTracksInFT0AAcceptance++;
+                } else if (track.eta() < -2.1 && track.eta() > -3.3) {
+                  nMcTracksInFT0CAcceptance++;
+                }
+              }
+              cout << "!!! Reconstructed tracks in the event (groupedAssocs.size=" << groupedAssocs.size() << ")" << endl;
+              for (auto& a : groupedAssocs) {
+                auto t = a.template reducedtrack_as<MyBarrelTracksWithCovWithAmbiguities>();
+                if (t.has_reducedMCTrack()) {
+                  auto mct = t.reducedMCTrack_as<ReducedMCTracks>();
+                  cout << "!!! PDG=" << mct.pdgCode() << ", (pT, eta, phi)=(" << mct.pt() << ", " << mct.eta() << ", " << mct.phi() << ")" << ", producedByGenerator=" << mct.producedByGenerator() << endl;
+                } else {
+                  cout << "!!! has no mcTrack" << endl;
+                }
+                cout << "!!!    reconstructed (pT, eta, phi)=(" << t.pt() << ", " << t.eta() << ", " << t.phi() << ")" << endl;
+              }
+              rejEvtD0Pt_nMcTracksInFT0AAcceptance->Fill(track.pt(), nMcTracksInFT0AAcceptance);
+              rejEvtD0Pt_nMcTracksInFT0CAcceptance->Fill(track.pt(), nMcTracksInFT0CAcceptance);
+            }
           }
         }
+      }
+      numGenSig_beforeEventCut->Fill(numSig);
+      if (event.isEventSelected_bit(0)) {
+        numGenSig_afterEventCut->Fill(numSig);
       }
     } // end loop over reconstructed events
   }
@@ -3320,10 +3412,8 @@ struct AnalysisAsymmetricPairing {
   PROCESS_SWITCH(AnalysisAsymmetricPairing, processKaonPionSkimmedMultExtra, "Run kaon pion pairing, with skimmed tracks", false);
   PROCESS_SWITCH(AnalysisAsymmetricPairing, processKaonPionPionSkimmed, "Run kaon pion pion triplets, with skimmed tracks", false);
   PROCESS_SWITCH(AnalysisAsymmetricPairing, processMCGen, "Loop over MC particle stack and fill generator level histograms", false);
-  PROCESS_SWITCH(AnalysisAsymmetricPairing, processMCGenWithEventSelection, "Loop over MC particle stack and fill generator level histograms", false);
   PROCESS_SWITCH(AnalysisAsymmetricPairing, processDummy, "Dummy function, enabled only if none of the others are enabled", true);
 };
-
 // Combines dileptons with barrel or muon tracks for either resonance or correlation analyses
 // Dileptons produced with all the selection cuts specified in the same-event pairing task are combined with the
 //   tracks passing the fConfigTrackCut cut. The dileptons cuts from the same-event pairing task are auto-detected

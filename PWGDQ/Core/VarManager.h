@@ -284,6 +284,8 @@ class VarManager : public TObject
     kMCEventTime,
     kMCEventWeight,
     kMCEventImpParam,
+    kMCIsNoITSROFBorder,
+    kMCIsNoTFBorder,
     kQ1ZNAX,
     kQ1ZNAY,
     kQ1ZNCX,
@@ -1984,6 +1986,10 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kMCEventTime] = event.t();
     values[kMCEventWeight] = event.weight();
     values[kMCEventImpParam] = event.impactParameter();
+
+    // auto bc = event.template bc_as<o2::aod::BC>();
+    // uint16_t bcInITSROF = (bc.globalBC() + 3564 - fgITSROFbias) % fgITSROFlength;
+    // values[kMCIsNoITSROFBorder] = bcInITSROF > fgITSROFBorderMarginLow && bcInITSROF < fgITSROFlength - fgITSROFBorderMarginHigh ? 1.0 : 0.0;
   }
 
   if constexpr ((fillMap & ReducedEventMC) > 0) {
@@ -1995,6 +2001,9 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kMCEventTime] = event.t();
     values[kMCEventWeight] = event.weight();
     values[kMCEventImpParam] = event.impactParameter();
+    // TODO: Fill kMCIsNoITSROFBorder and kMCIsNoTFBorder at reduced truth level
+    values[kMCIsNoTFBorder] = event.selection_bit(o2::aod::evsel::kNoTimeFrameBorder);
+    values[kMCIsNoITSROFBorder] = event.selection_bit(o2::aod::evsel::kNoITSROFrameBorder);
   }
 
   if constexpr ((fillMap & EventFilter) > 0 || (fillMap & RapidityGapFilter) > 0) {

@@ -437,6 +437,10 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMultDimuonsME] = "";
   fgVariableNames[kCentFT0C] = "Centrality FT0C";
   fgVariableUnits[kCentFT0C] = "%";
+  fgVariableNames[kIsNoTFBorder] = "Is not TF border";
+  fgVariableUnits[kIsNoTFBorder] = "";
+  fgVariableNames[kIsNoITSROFBorder] = "Is not ITS ROF border";
+  fgVariableUnits[kIsNoITSROFBorder] = "";
   fgVariableNames[kMCEventGeneratorId] = "MC Generator ID";
   fgVariableNames[kMCEventSubGeneratorId] = "MC SubGenerator ID";
   fgVariableNames[kMCVtxX] = "MC Vtx X";
@@ -453,6 +457,10 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMCEventTime] = ""; // TODO: add proper unit
   fgVariableUnits[kMCEventWeight] = "";
   fgVariableUnits[kMCEventImpParam] = "b";
+  fgVariableNames[kMCIsNoTFBorder] = "MC Is not TF border";
+  fgVariableUnits[kMCIsNoTFBorder] = "";
+  fgVariableNames[kMCIsNoITSROFBorder] = "MC Is not ITS ROF border";
+  fgVariableUnits[kMCIsNoITSROFBorder] = "";
   fgVariableNames[kTwoEvPosZ1] = "vtx-z_{1}";
   fgVariableUnits[kTwoEvPosZ1] = "cm";
   fgVariableNames[kTwoEvPosZ2] = "vtx-z_{2}";
@@ -1297,6 +1305,8 @@ void VarManager::SetDefaultVarNames()
   fgVarNamesMap["kIsNoTFBorder"] = kIsNoTFBorder;
   fgVarNamesMap["kIsNoITSROFBorder"] = kIsNoITSROFBorder;
   fgVarNamesMap["kIsNoITSROFBorderRecomputed"] = kIsNoITSROFBorderRecomputed;
+  fgVarNamesMap["kMCIsNoITSROFBorder"] = kMCIsNoITSROFBorder;
+  fgVarNamesMap["kMCIsNoTFBorder"] = kMCIsNoTFBorder;
   fgVarNamesMap["kIsNoSameBunch"] = kIsNoSameBunch;
   fgVarNamesMap["kIsGoodZvtxFT0vsPV"] = kIsGoodZvtxFT0vsPV;
   fgVarNamesMap["kIsVertexITSTPC"] = kIsVertexITSTPC;

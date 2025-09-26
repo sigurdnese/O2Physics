@@ -48,9 +48,13 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/DataTypes.h"
 #include "Framework/runDataProcessing.h"
+#include <DataFormatsParameters/AggregatedRunInfo.h>
+#include <ITSMFTBase/DPLAlpideParam.h>
 
 #include "TGeoGlobalMagField.h"
 #include "TList.h"
+
+#include <fairlogger/Logger.h>
 
 #include <cstdint>
 #include <iostream>
@@ -256,6 +260,18 @@ struct TableMakerMC {
   std::array<double, 1> cutValues;
   std::vector<int> cutDirMl;
 
+  int lastRun = -1;
+  int64_t bcSOR = -1;                    // global bc of the start of run
+  uint64_t sorTimestamp = 0;             // default SOR timestamp
+  uint64_t eorTimestamp = 1;             // default EOR timestamp
+  int64_t nBCsPerTF = -1;                // duration of TF in bcs, should be 128*3564 or 32*3564
+  int rofOffset = -1;                    // ITS ROF offset, in bc
+  int rofLength = -1;                    // ITS ROF length, in bc
+  int mITSROFrameStartBorderMargin = 10; // default value
+  int mITSROFrameEndBorderMargin = 20;   // default value
+  int mTimeFrameStartBorderMargin = 300; // default value
+  int mTimeFrameEndBorderMargin = 4000;  // default value
+
   void init(o2::framework::InitContext& context)
   {
     // Check whether barrel or muon are enabled
@@ -458,14 +474,62 @@ struct TableMakerMC {
     //       one has to do a mapping of the old vs new indices so that the skimmed labels are properly updated.
     VarManager::ResetValues(0, VarManager::kNVars);
 
+    auto firstBc = mcCollisions.begin().template bc_as<BCsWithTimestamps>();
+    int run = firstBc.runNumber();
+    // Update run information if necessary
+    if (run != lastRun) {
+      lastRun = run;
+      if (run < 500000) {
+        LOGF(fatal, "run < run3min (500000), unanchored Run3 MC");
+      }
+      auto runInfo = o2::parameters::AggregatedRunInfo::buildAggregatedRunInfo(o2::ccdb::BasicCCDBManager::instance(), run);
+      sorTimestamp = runInfo.sor;
+      eorTimestamp = runInfo.eor;
+      // timestamp of the middle of the run used to access run-wise CCDB entries
+      int64_t ts = sorTimestamp / 2 + eorTimestamp / 2;
+
+      auto alppar = fCCDB->getForTimeStamp<o2::itsmft::DPLAlpideParam<0>>("ITS/Config/AlpideParam", ts);
+      rofOffset = alppar->roFrameBiasInBC;
+      rofLength = alppar->roFrameLengthInBC;
+      EventSelectionParams* par = fCCDB->getForTimeStamp<EventSelectionParams>("EventSelection/EventSelectionParams", ts);
+      mITSROFrameStartBorderMargin = par->fITSROFrameStartBorderMargin;
+      mITSROFrameEndBorderMargin = par->fITSROFrameEndBorderMargin;
+
+      bcSOR = runInfo.orbitSOR * o2::constants::lhc::LHCMaxBunches;
+      nBCsPerTF = runInfo.orbitsPerTF * o2::constants::lhc::LHCMaxBunches;
+    }
+
     // Loop over MC collisions
     for (auto& mcCollision : mcCollisions) {
+      uint64_t evSel = 0;
+      // Get bc, calculate and fill TFborder and ITSROFborder quantities
+      auto bc = mcCollision.template bc_as<BCsWithTimestamps>();
+      uint64_t globalBC = bc.globalBC();
+      // check if bc is far from start and end of the ITS RO Frame border
+      uint16_t bcInITSROF = (globalBC + o2::constants::lhc::LHCMaxBunches - rofOffset) % rofLength;
+      LOGF(debug, "bcInITSROF=%d", bcInITSROF);
+      if (bcInITSROF > mITSROFrameStartBorderMargin && bcInITSROF < rofLength - mITSROFrameEndBorderMargin) {
+        VarManager::fgValues[VarManager::kMCIsNoITSROFBorder] = 1.0;
+        evSel |= BIT(evsel::EventSelectionFlags::kNoITSROFrameBorder);
+      } else {
+        VarManager::fgValues[VarManager::kMCIsNoITSROFBorder] = 0.0;
+      }
+      // check if bc is far from the Time Frame borders
+      int64_t bcInTF = (globalBC - bcSOR) % nBCsPerTF;
+      LOGF(debug, "bcInTF=%d", bcInTF);
+      if (bcInTF > mTimeFrameStartBorderMargin && bcInTF < nBCsPerTF - mTimeFrameEndBorderMargin) {
+        VarManager::fgValues[VarManager::kMCIsNoTFBorder] = 1;
+        evSel |= BIT(evsel::EventSelectionFlags::kNoTimeFrameBorder);
+      } else {
+        VarManager::fgValues[VarManager::kMCIsNoTFBorder] = 0;
+      }
+
       // Get MC collision information into the VarManager
       VarManager::FillEvent<VarManager::ObjTypes::CollisionMC>(mcCollision);
       // Fill histograms
       fHistMan->FillHistClass("Event_MCTruth", VarManager::fgValues);
       // Create the skimmed table entry for this collision
-      eventMC(mcCollision.generatorsID(), mcCollision.posX(), mcCollision.posY(), mcCollision.posZ(),
+      eventMC(evSel, mcCollision.generatorsID(), mcCollision.posX(), mcCollision.posY(), mcCollision.posZ(),
               mcCollision.t(), mcCollision.weight(), mcCollision.impactParameter());
     }
   }
@@ -592,12 +656,15 @@ struct TableMakerMC {
       }
       (reinterpret_cast<TH2I*>(fStatsList->At(0)))->Fill(1.0, static_cast<float>(o2::aod::evsel::kNsel));
 
+      // For MC, don't reject the event if it didn't pass the rapidity gap selection, we still need it in the reduced tables for efficiencies!
+      /*
       // apply the event filter
       if constexpr ((TEventFillMap & VarManager::ObjTypes::RapidityGapFilter) > 0) {
         if (!collision.eventFilter()) {
           continue;
         }
       }
+      */
 
       auto bc = collision.template bc_as<BCsWithTimestamps>();
       // store the selection decisions
